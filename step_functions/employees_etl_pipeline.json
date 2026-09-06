@@ -1,0 +1,44 @@
+{
+  "Comment": "Orchestrates transformation of validated employee CSV uploads. NOTE: this is a reference/manual-import copy - the terraform/ config deploys this same logic automatically via aws_sfn_state_machine, generated inline. Validation happens once, inside the Lambda, before this execution starts (the Lambda passes the validation report in as input) - so there's no separate ValidateCSV task here, unlike the original console-built version which re-validated inside the workflow.",
+  "StartAt": "CheckValidation",
+  "States": {
+    "CheckValidation": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.is_valid",
+          "BooleanEquals": true,
+          "Next": "RunGlueETL"
+        }
+      ],
+      "Default": "ValidationFailed"
+    },
+    "RunGlueETL": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "<employees-etl-job>"
+      },
+      "Next": "PipelineSucceeded",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineFailed"
+        }
+      ]
+    },
+    "PipelineSucceeded": {
+      "Type": "Succeed"
+    },
+    "ValidationFailed": {
+      "Type": "Fail",
+      "Error": "CSVValidationError",
+      "Cause": "Uploaded CSV failed schema/content validation"
+    },
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "GlueETLJobError",
+      "Cause": "Glue ETL job run failed"
+    }
+  }
+}
