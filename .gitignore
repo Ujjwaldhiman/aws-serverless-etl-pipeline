@@ -1,0 +1,20 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log
+terraform/build/
+
+# Credentials - never commit these
+.env
+*.pem
+credentials
+aws_credentials
+
+# OS / editor
+.DS_Store
+.vscode/
+__pycache__/
+*.pyc
